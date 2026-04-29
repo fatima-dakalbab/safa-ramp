@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  INSPECTOR
+  LEAD_INSPECTOR
+  GCAA_ADMIN
+}
+
+enum InspectionStatus {
+  DRAFT
+  IN_PROGRESS
+  CLOSED
+  APPROVED
+}
+
+enum InspectionType {
+  FULL
+  PARTIAL
+  FOCUSED
+}
+
+enum AircraftConfiguration {
+  PASSENGER
+  CARGO
+  COMBI
+  PRIVATE
+}
+
+enum Category {
+  A
+  B
+  C
+  D
+  E
+}
+
+enum FindingStatus {
+  PASS
+  FAIL
+  NOT_CHECKED
+}
+
+enum ActionLevel {
+  CAT1
+  CAT2
+  CAT3A
+  CAT3B
+  CAT3C
+  CAT3D
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime @default(now())
+  inspector    Inspector?
+}
+
+model Inspector {
+  id          String   @id @default(uuid())
+  inspectorId String   @unique
+  signature   String?
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id])
+  assignments InspectionAssignment[]
+  findings    Finding[]
+  timeLogs    InspectorTimeLog[]
+}
+
+model Inspection {
+  id               String           @id @default(uuid())
+  poiNumber        String           @unique
+  date             DateTime
+  startTime        DateTime?
+  endTime          DateTime?
+  place            String
+  inspectionType   InspectionType
+  flightType       String?
+  alcoholTest      Boolean          @default(false)
+  flightCrew       Int              @default(0)
+  cabinCrew        Int              @default(0)
+  status           InspectionStatus @default(DRAFT)
+  checklistVersion String?
+  departureLocked  Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  aircraft         Aircraft?
+  operator         Operator?
+  assignments      InspectionAssignment[]
+  findings         Finding[]
+  timeLogs         InspectorTimeLog[]
+}
+
+model Aircraft {
+  id            String                 @id @default(uuid())
+  registration  String
+  typeModel     String?
+  configuration AircraftConfiguration?
+  msn           String?
+  inspectionId  String                 @unique
+  inspection    Inspection             @relation(fields: [inspectionId], references: [id])
+}
+
+model Operator {
+  id              String     @id @default(uuid())
+  airlineName     String?
+  aoc             String?
+  stateOfRegistry String?
+  charteredBy     String?
+  chartererState  String?
+  routeFrom       String?
+  flightNoIn      String?
+  routeTo         String?
+  flightNoOut     String?
+  inspectionId    String     @unique
+  inspection      Inspection @relation(fields: [inspectionId], references: [id])
+}
+
+model InspectionAssignment {
+  id           String     @id @default(uuid())
+  inspectionId String
+  inspectorId  String
+  categoryA    Boolean    @default(false)
+  categoryB    Boolean    @default(false)
+  categoryC    Boolean    @default(false)
+  categoryD    Boolean    @default(false)
+  categoryE    Boolean    @default(false)
+
+  inspection Inspection @relation(fields: [inspectionId], references: [id])
+  inspector  Inspector  @relation(fields: [inspectorId], references: [id])
+}
+
+model ChecklistItem {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  category    Category
+  standard    String
+  description String
+  versionId   String
+  findings    Finding[]
+}
+
+model Finding {
+  id            String        @id @default(uuid())
+  inspectionId  String
+  inspectorId   String
+  itemCode      String
+  status        FindingStatus @default(NOT_CHECKED)
+  actionLevel   ActionLevel?
+  remarks       String?
+  photoUrl      String?
+  submittedAt   DateTime      @default(now())
+  inspection    Inspection    @relation(fields: [inspectionId], references: [id])
+  inspector     Inspector     @relation(fields: [inspectorId], references: [id])
+  checklistItem ChecklistItem @relation(fields: [itemCode], references: [code])
+}
+
+model InspectorTimeLog {
+  id           String     @id @default(uuid())
+  inspectionId String
+  inspectorId  String
+  baseHours    Float
+  multiplier   Float      @default(1.0)
+  billedHours  Float
+  isWeekend    Boolean    @default(false)
+  isLateHours  Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  inspection   Inspection @relation(fields: [inspectionId], references: [id])
+  inspector    Inspector  @relation(fields: [inspectorId], references: [id])
+}
