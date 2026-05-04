@@ -301,7 +301,7 @@ export default function DashboardPage() {
               <tbody>
                 {inspections.map((ins, i) => (
                   <tr key={ins.id}
-                    onClick={() => router.push(`/inspection/${ins.id}`)}
+                    onClick={() => router.push(`/inspection/${ins.id}/checklist`)}
                     style={{
                       borderBottom: i < inspections.length - 1 ? '1px solid #f8fafc' : 'none',
                       cursor: 'pointer', transition: 'background 0.15s',
